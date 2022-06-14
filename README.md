@@ -56,3 +56,86 @@ kubectl apply -f k8s/pod.yaml
 ```bash
 kubectl port-forward pod/goserver 8080:8080
 ```
+
+#### ReplicaSet
+```bash
+kubectl apply -f k8s/replicaset.yaml
+```
+
+#### O "problema" do ReplicaSet
+Se por algum motivo uma nova versão de uma imagem for gerada, mesmo que o replicaset seja configurado, os pods não serão atualizados com a nova versão.
+Para que o replicaset suba a nova versão, os PODs que estão rodando precisam ser deletados para o replicaset criar o POD com a nova versão da imagem.
+
+#### Detalhes de um POD
+```bash
+kubectl describe pod pod-name
+```
+
+#### Deployment
+Deployment >>> ReplicaSet >>> Pod
+
+```bash
+kubectl apply -f k8s/deployment.yaml
+```
+
+#### Historico
+```bash
+> kubectl rollout history deployment goserver
+deployment.apps/goserver 
+REVISION  CHANGE-CAUSE
+1         <none>
+
+> kubectl rollout undo deployment goserver --to-revision=1
+```
+
+#### Services
+É o mecanismo que possibilita o acesso aos pods
+
+**ClusterIP**
+```bash
+kubectl apply -f k8s/service.yaml
+```
+```bash
+> kubectl get services
+NAME               TYPE        CLUSTER-IP    EXTERNAL-IP   PORT(S)    AGE
+goserver-service   ClusterIP   10.96.73.79   <none>        8080/TCP   22s
+kubernetes         ClusterIP   10.96.0.1     <none>        443/TCP    12h
+```
+```bash
+kubectl port-forward service/goserver-service 8080:8080
+```
+
+**NodePort**
+Node 1: 30000 > < 32767 ---> 30001
+Node 2: 30001
+Node 3: 30001
+Node 4: 30001
+
+**LoadBalancer**
+```bash
+type: LoadBalancer
+
+> kubectl delete service goserver-service
+> kubectl apply -f k8s/service.yaml
+> kubectl get svc
+NAME               TYPE           CLUSTER-IP      EXTERNAL-IP   PORT(S)          AGE
+goserver-service   LoadBalancer   10.96.190.149   <pending>     8081:30954/TCP   94s
+```
+
+#### Port / TargetPort
+TargetPort é a porta ativa do container que ira receber as requisições
+Port fornece a possibilidade de estabelecer um porta de entrada diferente da porta esperada pelo container, isso quando o TargetPort é informado.
+
+```bash
+port: 8081 //porta do service
+targetPort: 8080 //porta ativa do container
+
+kubectl port-forward service/goserver-service 9000:8081
+> localhost:9000   >>>   8081(porta do service)  >>>  8080(porta ativa do container)
+```
+
+#### Acessando API do Kubernetes
+```bash
+kubectl proxy --port=8001
+```
+http://localhost:8001/api/v1/namespaces/default/services/goserver-service
