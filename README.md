@@ -139,3 +139,108 @@ kubectl port-forward service/goserver-service 9000:8081
 kubectl proxy --port=8001
 ```
 http://localhost:8001/api/v1/namespaces/default/services/goserver-service
+
+#### Variáveis de ambiente
+deployment.yaml
+```yaml
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: goserver
+  labels:
+    app: goserver
+spec:
+  selector:
+    matchLabels:
+      app: goserver    
+  replicas: 1
+  template:
+    metadata:
+      labels:
+        app: "goserver"
+    spec:
+      containers:
+        - name: goserver
+          image: "robsantossilva/hello-go:v4"
+          env:
+            - name: "NAME"
+              value: "Robson"
+            - name: "AGE"
+              value: "30"
+```
+
+```bash
+kubectl port-forward service/goserver-service 9000:8081
+```
+
+#### ConfigMap
+configmap-env.yaml
+```yaml
+apiVersion: v1 
+kind: ConfigMap
+metadata:
+  name: goserver-env
+data:
+  NAME: "Robson"
+  AGE: "30"
+```
+
+deployment.yaml
+```yaml
+env:
+  - name: "NAME"
+    valueFrom:
+      configMapKeyRef:
+        name: "goserver-env"
+        key: "NAME"
+  - name: "AGE"
+    valueFrom:
+      configMapKeyRef:
+        name: "goserver-env"
+        key: "AGE"
+
+OU
+
+envFrom:
+  - configMapRef:
+      name: goserver-env
+```
+
+**Sempre que ouver mudanças no ConfigMap deve-se subir novamente o Deployment**
+
+```bash
+> kubectl apply -f k8s/configmap-env.yaml
+> kubectl apply -f k8s/deployment.yaml
+```
+
+**Criando volume apartir de um ConfigMap**
+```yaml
+spec:
+  containers:
+    - name: goserver
+      image: "robsantossilva/hello-go:v5"
+      envFrom:
+        - configMapRef:
+            name: goserver-env
+      volumeMounts:
+        - mountPath: /go/myfamily
+          name: config
+
+  volumes:
+    - name: config
+      configMap:
+        name: configmap-family
+        items:
+          - key: members
+            path: family.txt
+```
+```bash
+> kubectl apply -f k8s/configmap-family.yaml
+> kubectl apply -f k8s/deployment.yaml
+```
+
+#### Entrando dentro do Pod
+```bash
+kubectl exec -it pod-name -- sh
+kubectl logs pod-name
+```

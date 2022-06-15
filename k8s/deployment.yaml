@@ -8,7 +8,7 @@ spec:
   selector:
     matchLabels:
       app: goserver    
-  replicas: 10
+  replicas: 1
   template:
     metadata:
       labels:
@@ -16,4 +16,21 @@ spec:
     spec:
       containers:
         - name: goserver
-          image: "robsantossilva/hello-go:latest"
+          image: "robsantossilva/hello-go:v6"
+
+          envFrom:
+            - configMapRef:
+                name: goserver-env
+
+          volumeMounts:
+            - mountPath: /go/src/app/myfamily
+              name: config
+              readOnly: true
+
+      volumes:
+        - name: config
+          configMap:
+            name: configmap-family
+            items:
+            - key: members
+              path: "family.txt"
