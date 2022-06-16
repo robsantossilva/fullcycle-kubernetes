@@ -16,11 +16,22 @@ spec:
     spec:
       containers:
         - name: goserver
-          image: "robsantossilva/hello-go:v6"
+          image: "robsantossilva/hello-go:v5.4"
+          livenessProbe:
+            httpGet:
+              path: /healthz
+              port: 8080
+            periodSeconds: 5
+            failureThreshold: 3
+            timeoutSeconds: 1
+            successThreshold: 1
+            initialDelaySeconds: 1
 
           envFrom:
             - configMapRef:
                 name: goserver-env
+            - secretRef:
+                name: goserver-secret
 
           volumeMounts:
             - mountPath: /go/src/app/myfamily

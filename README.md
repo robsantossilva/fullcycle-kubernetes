@@ -244,3 +244,40 @@ spec:
 kubectl exec -it pod-name -- sh
 kubectl logs pod-name
 ```
+
+#### Secrets e variaveis de ambiente
+```yaml
+apiVersion: v1
+kind: Secret
+metadata:
+  name: goserver-secret
+type: Opaque
+data:
+  USER: "YWRtaW4K"
+  PASSWORD: "MTIzNDU2Cg=="
+```
+```bash
+kubectl apply -f k8s/secret.yaml
+```
+
+#### Health Check
+Possibilita a garantia de que um Pod esta funcionando.
+
+**Liveness**
+deployment.yaml
+```yaml
+containers:
+  - name: goserver
+    image: "robsantossilva/hello-go:v5.3"
+    livenessProbe:
+      httpGet:
+        path: /healthz
+        port: 8080
+      periodSeconds: 5
+      failureThreshold: 3
+      timeoutSeconds: 1
+      successThreshold: 1
+```
+```bash
+kubectl apply -f k8s/deployment.yaml && watch -n1 kubectl get pods
+```
