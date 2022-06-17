@@ -264,6 +264,7 @@ kubectl apply -f k8s/secret.yaml
 Possibilita a garantia de que um Pod esta funcionando.
 
 **Liveness**
+Validar se a aplicação esta disponivel
 deployment.yaml
 ```yaml
 containers:
@@ -277,6 +278,26 @@ containers:
       failureThreshold: 3
       timeoutSeconds: 1
       successThreshold: 1
+```
+```bash
+kubectl apply -f k8s/deployment.yaml && watch -n1 kubectl get pods
+```
+
+**Readiness**
+Validar se aplicação esta pronta para receber chamadas.
+Em alguns casos a aplicação demora um pouco para carregar tudo, exige um tempo de inicialização.
+deployment.yaml
+```yaml
+containers:
+  - name: goserver
+    image: "robsantossilva/hello-go:v5.5"
+    readinessProbe:
+      httpGet:
+        path: /readiness
+        port: 8080
+      periodSeconds: 3
+      failureThreshold: 1
+      initialDelaySeconds: 10
 ```
 ```bash
 kubectl apply -f k8s/deployment.yaml && watch -n1 kubectl get pods
