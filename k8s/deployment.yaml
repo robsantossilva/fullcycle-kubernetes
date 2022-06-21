@@ -18,23 +18,30 @@ spec:
         - name: goserver
           image: "robsantossilva/hello-go:v5.5"
           
+          startupProbe:
+            httpGet:
+              path: /healthz
+              port: 8080
+            periodSeconds: 3
+            failureThreshold: 30
+
           readinessProbe:
             httpGet:
-              path: /readiness
+              path: /healthz
               port: 8080
             periodSeconds: 3
             failureThreshold: 1
-            initialDelaySeconds: 10
+            #initialDelaySeconds: 10
           
-          # livenessProbe:
-          #   httpGet:
-          #     path: /healthz
-          #     port: 8080
-          #   periodSeconds: 5
-          #   failureThreshold: 3
-          #   timeoutSeconds: 1
-          #   successThreshold: 1
-          #   initialDelaySeconds: 1
+          livenessProbe:
+            httpGet:
+              path: /healthz
+              port: 8080
+            periodSeconds: 5
+            failureThreshold: 1
+            timeoutSeconds: 1
+            successThreshold: 1
+            #initialDelaySeconds: 10
 
           envFrom:
             - configMapRef:
@@ -54,3 +61,5 @@ spec:
             items:
             - key: members
               path: "family.txt"
+
+

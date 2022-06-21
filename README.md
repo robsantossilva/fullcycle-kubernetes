@@ -260,7 +260,7 @@ data:
 kubectl apply -f k8s/secret.yaml
 ```
 
-#### Health Check
+#### Health Check (Probes)
 Possibilita a garantia de que um Pod esta funcionando.
 
 **Liveness**
@@ -302,3 +302,18 @@ containers:
 ```bash
 kubectl apply -f k8s/deployment.yaml && watch -n1 kubectl get pods
 ```
+
+**Readiness** Válida se o container esta pronto, estando pronto o container fica disponível, se não estiver READY o trafego não é mais direcionado para o container
+**Liveness** Válida se o container esta de pé, caso contrário ele reiniciar e tenta recriar o processo.
+
+Subindo tudo:
+```bash
+kubectl delete deployment goserver \
+&& kubectl apply -f k8s/configmap-env.yaml \
+&& kubectl apply -f k8s/configmap-family.yaml \
+&& kubectl apply -f k8s/secret.yaml \
+&& kubectl apply -f k8s/deployment.yaml \
+&& watch -n1 kubectl get pods
+```
+
+**startupProbe** Garante a inicialização do container deixando o caminho livre para o Readiness e Liveness
