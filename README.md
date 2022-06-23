@@ -1,4 +1,4 @@
-### Kubernetes
+## Kubernetes
 
 Kubernetes (K8S) é um produto Open Source utilizado para **automatizar a implantação**, o **dimensionamento** e o **gerenciamento** de aplicativos em contêiner.
 
@@ -7,7 +7,7 @@ Da onde veio: **Google**
 - Omega
 - Kubernetes
 
-#### Pontos importantes
+### Pontos importantes
 - Kubernetes é disponibilizado através de um conjunto de APIs
 - Normalmente acessamos a API usando a CLI: kubectl
 - Tudo é baseado em estado. Você configura o estado de cada objeto
@@ -19,13 +19,13 @@ Da onde veio: **Google**
   - Kubelet
   - Kubeproxy
 
-#### Dinâmica "superficial"
+### Dinâmica "superficial"
 - Cluster: Conjunto de maquinas (nodes)
 - Cada máquina possui uma quantidade de vCPU e Memória
 - Pods: Unidade que contém os containers provisionados
 - O Pod representa os processos rodando no cluster
 
-#### Deployment
+### Deployment
 - Provisiona os Pods
 - ReplicaSet
 - Transbordo de Pods para outros Nodes
@@ -34,51 +34,51 @@ Exemplo:
 B = Backend => 3 réplicas => 3 Pods Backend
 F = Frontend => 2 réplicas => 2 Pods Frontend
 
-#### Kind
+### Kind
 https://kind.sigs.k8s.io/
 
 ```bash
 kind create cluster --config=k8s/kind.yaml --name=fullcycle
 ```
 
-#### APP Go
+### APP Go
 ```bash
 docker build -t robsantossilva/hello-go .
 docker run --rm -p 8080:8080 robsantossilva/hello-go
 ```
 
-#### Criando POD
+### Criando POD
 ```bash
 kubectl apply -f k8s/pod.yaml
 ```
 
-#### Acessando POD
+### Acessando POD
 ```bash
 kubectl port-forward pod/goserver 8080:8080
 ```
 
-#### ReplicaSet
+### ReplicaSet
 ```bash
 kubectl apply -f k8s/replicaset.yaml
 ```
 
-#### O "problema" do ReplicaSet
+### O "problema" do ReplicaSet
 Se por algum motivo uma nova versão de uma imagem for gerada, mesmo que o replicaset seja configurado, os pods não serão atualizados com a nova versão.
 Para que o replicaset suba a nova versão, os PODs que estão rodando precisam ser deletados para o replicaset criar o POD com a nova versão da imagem.
 
-#### Detalhes de um POD
+### Detalhes de um POD
 ```bash
 kubectl describe pod pod-name
 ```
 
-#### Deployment
+### Deployment
 Deployment >>> ReplicaSet >>> Pod
 
 ```bash
 kubectl apply -f k8s/deployment.yaml
 ```
 
-#### Historico
+### Historico
 ```bash
 > kubectl rollout history deployment goserver
 deployment.apps/goserver 
@@ -88,7 +88,7 @@ REVISION  CHANGE-CAUSE
 > kubectl rollout undo deployment goserver --to-revision=1
 ```
 
-#### Services
+### Services
 É o mecanismo que possibilita o acesso aos pods
 
 **ClusterIP**
@@ -122,7 +122,7 @@ NAME               TYPE           CLUSTER-IP      EXTERNAL-IP   PORT(S)         
 goserver-service   LoadBalancer   10.96.190.149   <pending>     8081:30954/TCP   94s
 ```
 
-#### Port / TargetPort
+### Port / TargetPort
 TargetPort é a porta ativa do container que ira receber as requisições
 Port fornece a possibilidade de estabelecer um porta de entrada diferente da porta esperada pelo container, isso quando o TargetPort é informado.
 
@@ -134,13 +134,13 @@ kubectl port-forward service/goserver-service 9000:8081
 > localhost:9000   >>>   8081(porta do service)  >>>  8080(porta ativa do container)
 ```
 
-#### Acessando API do Kubernetes
+### Acessando API do Kubernetes
 ```bash
 kubectl proxy --port=8001
 ```
 http://localhost:8001/api/v1/namespaces/default/services/goserver-service
 
-#### Variáveis de ambiente
+### Variáveis de ambiente
 deployment.yaml
 ```yaml
 apiVersion: apps/v1
@@ -173,7 +173,7 @@ spec:
 kubectl port-forward service/goserver-service 9000:8081
 ```
 
-#### ConfigMap
+### ConfigMap
 configmap-env.yaml
 ```yaml
 apiVersion: v1 
@@ -239,13 +239,13 @@ spec:
 > kubectl apply -f k8s/deployment.yaml
 ```
 
-#### Entrando dentro do Pod
+### Entrando dentro do Pod
 ```bash
 kubectl exec -it pod-name -- sh
 kubectl logs pod-name
 ```
 
-#### Secrets e variaveis de ambiente
+### Secrets e variaveis de ambiente
 ```yaml
 apiVersion: v1
 kind: Secret
@@ -260,7 +260,7 @@ data:
 kubectl apply -f k8s/secret.yaml
 ```
 
-#### Health Check (Probes)
+### Health Check (Probes)
 Possibilita a garantia de que um Pod esta funcionando.
 
 **Liveness**
@@ -317,3 +317,95 @@ kubectl delete deployment goserver \
 ```
 
 **startupProbe** Garante a inicialização do container deixando o caminho livre para o Readiness e Liveness
+
+
+### Metrics-server
+- O que devo observar e como definir a quantidade de pods que devo escalar?
+- Como usar corretamente o Autoscaling?
+- Quais os limites da aplicação para que faça sentido escalar?
+- O que é o HPA (Horizontal Pod Autoscaling)
+
+**Metrics-server** coleta em tempo real a quantidade de recursos sendo consumidos no momento.
+Pode ser integrado com o Prometheus para extrair metricas de forma visual para tomada de decisão.
+
+**Instalando Metrics-server**
+https://github.com/kubernetes-sigs/metrics-server
+
+```bash
+wget https://github.com/kubernetes-sigs/metrics-server/releases/latest/download/components.yaml
+```
+
+Renomear components.yaml para metrics-server.yaml
+Adicionar essa linha em Deployment
+```yaml
+containers:
+  - args:
+    - --kubelet-insecure-tls
+```
+
+Aplicar
+```bash
+> kubectl apply -f metrics-server.yaml
+
+> kubectl get apiservices
+NAME                                   SERVICE                      AVAILABLE   AGE
+v1beta1.metrics.k8s.io                 kube-system/metrics-server   True        37s
+```
+
+**Definindo recursos por pod**
+```yaml
+resources:
+  requests:
+    cpu: 100m
+    memory: 20Mi
+  limits:
+    cpu: 500m
+    memory: 25Mi
+```
+
+**Observando uso de recursos**
+```bash
+kubectl get pod
+NAME                        READY   STATUS    RESTARTS   AGE
+goserver-7c4c9fd54d-vhl8b   1/1     Running   0          47s
+
+---
+
+kubectl top pod goserver-7c4c9fd54d-vhl8b
+NAME                        CPU(cores)   MEMORY(bytes)   
+goserver-7c4c9fd54d-vhl8b   1m           6Mi
+```
+
+### HPA (Horizontal Pod Autoscaling)
+```yaml
+apiVersion: autoscaling/v1
+kind: HorizontalPodAutoscaler
+metadata:
+  name: goserver-hpa
+spec:
+  scaleTargetRef:
+    apiVersion: apps/v1
+    name: goserver
+    kind: Deployment
+  minReplicas: 1
+  maxReplicas: 30
+  targetCPUUtilizationPercentage: 25
+```
+
+```bash
+> kubectl apply -f k8s/hpa.yaml
+> kubectl get hpa
+NAME           REFERENCE             TARGETS         MINPODS   MAXPODS   REPLICAS   AGE
+goserver-hpa   Deployment/goserver   <unknown>/25%   1         30        0          29s
+```
+
+Teste de stress no service
+https://github.com/fortio/fortio
+
+```bash
+watch -n1 kubectl get hpa
+```
+
+```bash
+kubectl run -it fortio --rm --image=fortio/fortio -- load -qps 800 -t 120s -c 70 "http://goserver-service:8081/healthz"
+```
