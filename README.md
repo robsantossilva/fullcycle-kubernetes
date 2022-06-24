@@ -409,3 +409,83 @@ watch -n1 kubectl get hpa
 ```bash
 kubectl run -it fortio --rm --image=fortio/fortio -- load -qps 800 -t 120s -c 70 "http://goserver-service:8081/healthz"
 ```
+
+
+### Statefulsets e volumes persistentes
+
+Aplicação Stateless é uma aplicação sem estado que facilita muito na criação e exclusão de bots sem gerar problemas para a aplicação, dados não são perdidos.
+
+Porém existem casos que é necessário manter a persistencia de informações, por exemplo em situação que precisa ser urilizado banco de dados. É nesse cenário que entram os volumes persistentes, que armazenam em disco.
+
+**Pull de Storage**: Espaço reservado para persistencia de dados.
+**Claim**: Solicitação para utilização do espaço reservado.
+**StorageClass** fornece uma maneira para os administradores descreverem as "classes" de armazenamento que eles oferecem. Classes diferentes podem ser mapeadas para níveis de qualidade de serviço, políticas de backup ou políticas arbitrárias determinadas pelos administradores de cluster. O próprio Kubernetes não tem opinião sobre o que as classes representam. Esse conceito às vezes é chamado de "perfis" em outros sistemas de armazenamento.
+
+#### Criando volume persistente e montando
+```yaml
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: goserver-pvc
+spec:
+  accessModes:
+    - ReadWriteOnce
+  resources:
+    requests:
+      storage: 5Gi
+```
+```bash
+> kubectl apply -f k8s/pvc.yaml
+> kubectl get pvc
+NAME           STATUS    VOLUME   CAPACITY   ACCESS MODES   STORAGECLASS   AGE
+goserver-pvc   Pending                                      standard       2m31s
+
+> kubectl get storageclass
+NAME                 PROVISIONER             RECLAIMPOLICY   VOLUMEBINDINGMODE      ALLOWVOLUMEEXPANSION   AGE
+standard (default)   rancher.io/local-path   Delete          WaitForFirstConsumer   false                  16m
+```
+
+**Montando o Volume**
+delpoyment.yaml
+```yaml
+    volumeMounts:
+      - mountPath: /go/pvc
+        name: goserver-volume
+
+volumes:
+  - name: goserver-volume
+    persistentVolumeClaim:
+      claimName: goserver-pvc # <----- nome do pvc criado em pvc.yaml
+```
+atualizando deployment
+```bash
+kubectl apply -f k8s/deployment.yaml
+```
+Visualizando novamente o persistent volume claim
+```bash
+> kubectl get pvc
+NAME           STATUS   VOLUME                                     CAPACITY   ACCESS MODES   STORAGECLASS   AGE
+goserver-pvc   Bound    pvc-62aaf87f-c16c-4919-9832-e8426eedb6ef   5Gi        RWO            standard       18m
+```
+Entrando no POD
+```bash
+> kubectl get pods
+NAME                        READY   STATUS    RESTARTS   AGE
+goserver-678b7d5488-kldmk   1/1     Running   0          12m
+
+kubectl exec -it goserver-678b7d5488-kldmk -- sh
+```
+
+---
+
+Subindo tudo:
+```bash
+kubectl apply -f k8s/metrics-server.yaml \
+&& kubectl apply -f k8s/configmap-env.yaml \
+&& kubectl apply -f k8s/configmap-family.yaml \
+&& kubectl apply -f k8s/secret.yaml \
+&& kubectl apply -f k8s/deployment.yaml \
+&& kubectl apply -f k8s/hpa.yaml \
+&& kubectl apply -f k8s/pvc.yaml \
+&& watch -n1 kubectl get pods
+```
