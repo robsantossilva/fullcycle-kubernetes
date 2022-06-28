@@ -18,13 +18,13 @@ spec:
         - name: goserver
           image: "robsantossilva/hello-go:v5.8"
 
-          resources:
-            requests:
-              cpu: "0.3"
-              memory: 20Mi
-            limits:
-              cpu: "0.3"
-              memory: 25Mi
+          # resources:
+          #   requests:
+          #     cpu: "0.3"
+          #     memory: 20Mi
+          #   limits:
+          #     cpu: "0.3"
+          #     memory: 25Mi
           
           startupProbe:
             httpGet:

@@ -484,8 +484,115 @@ kubectl apply -f k8s/metrics-server.yaml \
 && kubectl apply -f k8s/configmap-env.yaml \
 && kubectl apply -f k8s/configmap-family.yaml \
 && kubectl apply -f k8s/secret.yaml \
+&& kubectl apply -f k8s/pvc.yaml \
 && kubectl apply -f k8s/deployment.yaml \
 && kubectl apply -f k8s/hpa.yaml \
-&& kubectl apply -f k8s/pvc.yaml \
 && watch -n1 kubectl get pods
 ```
+
+#### Entendendo Stateless vs Stateful
+**Stateless** Não guarda estado.
+**Stateful** Mantem estado, mantem dados. Ex.: Banco de dados
+
+### StatefulSet
+
+Os PODs sobem de forma sequencial
+```yaml
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  name: mysql
+spec:
+  replicas: 4
+  serviceName: mysql-h
+  selector:
+      matchLabels:
+        app: mysql
+  template:
+    metadata:
+      labels:
+        app: mysql
+    spec:
+      containers:
+        - name: mysql
+          image: mysql
+          env:
+            - name: MYSQL_ROOT_PASSWORD
+              value: root
+```
+
+```bash
+kubectl apply -f k8s/statefulset.yaml
+
+NAME                        READY   STATUS              RESTARTS   AGE
+mysql-0                     1/1     Running             0          95s
+mysql-1                     1/1     Running             0          66s
+mysql-2                     1/1     Running             0          34s
+mysql-3                     0/1     ContainerCreating   0          4s
+```
+
+**Handless service**
+Direcionamento de PODs
+
+```yaml
+apiVersion: v1
+kind: Service
+metadata:
+  name: mysql-h
+spec:
+  selector:
+    app: mysql
+  ports:
+    - port: 3306
+  clusterIP: None
+```
+
+```bash
+kubectl apply -f k8s/mysql-service-h.yaml
+
+> kubectl exec -it goserver-678b7d5488-p8mrn -- sh
+
+> ping mysql-0.mysql-h
+PING mysql-0.mysql-h (10.244.2.2): 56 data bytes
+64 bytes from 10.244.2.2: seq=0 ttl=62 time=0.097 ms
+64 bytes from 10.244.2.2: seq=1 ttl=62 time=0.162 ms
+64 bytes from 10.244.2.2: seq=2 ttl=62 time=0.108 ms
+```
+
+
+### Ingress
+Ponto de entrada que distribui o acesso entre os serviços
+
+install Ingress
+
+Prerequisites
+Helm version 3.x.x: Kubernetes v1.16+
+
+```bash
+helm repo add ingress-nginx https://kubernetes.github.io/ingress-nginx
+helm repo update
+helm install ingress-nginx ingress-nginx/ingress-nginx
+```
+
+
+```bash
+kubectl apply -f k8s/ingress.yaml
+```
+
+### Cert Manager
+
+https://cert-manager.io/docs/installation/kubectl/#installing-with-regular-manifests
+
+Permissions Errors on Google Kubernetes Engine
+```bash
+kubectl create clusterrolebinding cluster-admin-binding \
+    --clusterrole=cluster-admin \
+    --user=$(gcloud config get-value core/account)
+
+kubectl create namespace cert-manager
+
+kubectl apply -f https://github.com/cert-manager/cert-manager/releases/download/v1.8.2/cert-manager.yaml
+
+kubectl get po -n cert-manager
+```
+
