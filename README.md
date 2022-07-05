@@ -595,4 +595,55 @@ kubectl apply -f https://github.com/cert-manager/cert-manager/releases/download/
 
 kubectl get po -n cert-manager
 ```
+### Namespaces
+
+Separação Virtual/Logica para cada contexto de instalação.
+Configuração de Recursos, Acesso e Segurança pode ser configurado por Namespace
+
+```bash
+kubectl create ns dev
+
+kubectl apply -f d.yaml -n dev
+```
+
+**Setando o contexto e namespace**
+Contextos Dev e Prod
+```bash
+> kubectl config set-context dev --namespace=dev --cluster=kind-fullcycle --user=kind-fullcycle
+
+> kubectl config set-context prod --namespace=prod --cluster=kind-fullcycle --user=kind-fullcycle
+
+> kubectl config view
+contexts:
+- context:
+    cluster: kind-fullcycle
+    namespace: **dev**
+    user: kind-fullcycle
+  name: **dev**
+- context:
+    cluster: kind-fullcycle
+    user: kind-fullcycle
+  name: kind-fullcycle
+- context:
+    cluster: kind-fullcycle
+    namespace: **prod**
+    user: kind-fullcycle
+  name: **prod**
+
+> kubectl config use-context dev
+> kubectl config current-context
+dev
+```
+
+### Service Account
+Isolar o container de um Pod das demais funções do Kubernetes
+
+```bash
+kubectl get serviceaccounts
+```
+
+ApiGroups
+```bash
+kubectl api-resources
+```
 
